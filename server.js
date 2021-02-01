@@ -1,0 +1,78 @@
+const express = require('express');
+const mongo = require('mongodb').MongoClient;
+const url = 'mongodb://localhost:27017';
+
+const app = express();
+var cors = require('cors');
+app.use(cors());
+app.use(express.json());
+
+let db, trips, expenses;
+
+mongo.connect(url, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  }, (err, client) => {
+  if (err) {
+    console.error(err);
+    return;
+  }
+  db = client.db('tripcost');
+  trips = db.collection('trips');
+  expenses = db.collection('expenses');
+});
+
+
+app.post('/trip', (req, res) => {
+  console.log(req.body);
+  const name = req.body.name;
+  trips.insertOne({ name }, (err, result) => {
+    if(err) {
+      console.error(err);
+      res.status(500).json({ err });
+      return;
+    }
+    res.status(200).json({ ok: true });
+  });
+});
+
+app.get('/trips', (req, res) => {
+  trips.find().toArray((err, items) => {
+    if(err) {
+      console.error(err);
+      res.status(500).json({ err });
+      return;
+    }
+    res.status(200).json({ trips: items });
+  })
+})
+
+app.post('/expense', (req, res) => {
+  expenses.insertOne({
+    trip: req.body.trip,
+    date: req.body.date,
+    amount: req.body.amount,
+    category: req.body.category,
+    description: req.body.description,
+  }, (err, result) => {
+    if(err) {
+      console.error(err);
+      res.status(500).json({ err });
+      return;
+    }
+    res.status(200).json({ ok: true });
+  });
+});
+
+app.post('/expenses', (req, res) => {
+  expenses.find({ trip: req.body.trip }).toArray((err, items) => {
+    if(err) {
+      console.error(err);
+      res.status(500).json({ err });
+      return;
+    }
+    res.status(200).json({ expenses: items });
+  });
+});
+
+app.listen(3000, () => console.log('Server ready'));
